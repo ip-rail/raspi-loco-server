@@ -1,8 +1,8 @@
 /* raspilokserver
  * raspilokserver.c
  *
- *	Version: 0.1
- *  Created on: 14.12.2014 - 02.05.2015
+ *	Version: 0.2
+ *  Created on: 14.12.2014 - 06.05.2015
  *  Author: Michael Brunnbauer
  */
 

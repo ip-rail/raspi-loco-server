@@ -2,7 +2,8 @@
  * uart.c
  *
  *  Created on: 02.01.2015
- *      Author: http://www.raspberry-projects.com/pi/programming-in-c/uart-serial-port/using-the-uart
+ *      Author: Michael Brunnbauer
+ *      based on this: http://www.raspberry-projects.com/pi/programming-in-c/uart-serial-port/using-the-uart
  */
 
 #include <stdio.h>

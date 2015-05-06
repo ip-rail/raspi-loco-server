@@ -2,7 +2,7 @@
  * commands.h
  *
  *  Created on: 25.08.2013
- *      Author: ratz
+ *      Author: Michael Brunnbauer
  */
 
 #ifndef COMMANDS_H_

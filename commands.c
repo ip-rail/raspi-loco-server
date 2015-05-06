@@ -2,7 +2,7 @@
  * commands.c
  *
  *  Created on: 25.08.2013
- *      Author: ratz
+ *      Author: Michael Brunnbauer
  */
 
 #include <stdio.h>

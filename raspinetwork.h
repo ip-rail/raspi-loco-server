@@ -2,7 +2,7 @@
  * raspinetwork.h
  *
  *  Created on: 25.08.2013
- *      Author: ratz
+ *      Author: Michael Brunnbauer
  */
 
 #ifndef RASPINETWORK_H_

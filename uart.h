@@ -2,7 +2,7 @@
  * uart.h
  *
  *  Created on: 02.01.2015
- *      Author: ratz
+ *      Author: Michael Brunnbauer
  */
 
 #ifndef UART_H_
