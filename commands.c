@@ -156,9 +156,14 @@ int parsecmd(char *singlecmd)
 		if (PLED01_ok)	// wenn der LED-Controller aktiv ist
 		{
 			bzero(test,UART_MAXCMDLEN+1);
-			strncpy(test, singlecmd+3, strlen(singlecmd+3)-1);		// die Zahl rauskopiern test sollte leer sein
+			printf("LEDc: singlecmd+3=%s\n",singlecmd+3);
+			strncpy(test, singlecmd+3, strlen(singlecmd+3));		// die Zahl rauskopiern test sollte leer sein
+			printf("LEDc: Teststring mit LED-Nummer=%s\n",test);
+
 			long_val = strtol(test, NULL, 10);
+			printf("LEDc: LED-Nummer long=%lu\n",long_val);
 			lednummer = (int) long_val;
+			printf("LEDc: LED-Nummer=%i\n",lednummer);
 			if ((lednummer > 0) && (lednummer < 17)) { ledc_led_setpwm(I2CSLAVE_ADDR_PLED01, lednummer, 255);  }	//TODO: LED vorerst voll aufdrehen
 			else { printf("Error cmd getcmd: <l1:n> LED-number %i not valid!\n", lednummer);}
 		}
@@ -175,14 +180,21 @@ int parsecmd(char *singlecmd)
 		if (PLED01_ok)	// wenn der LED-Controller aktiv ist
 		{
 			bzero(test,UART_MAXCMDLEN+1);
-			strncpy(test, singlecmd+3, strlen(singlecmd+3)-1);		// die Zahl rauskopiern test sollte leer sein
+			strncpy(test, singlecmd+3, strlen(singlecmd+3));		// die Zahl rauskopiern test sollte leer sein
 			long_val = strtol(test, NULL, 10);
 			lednummer = (int) long_val;
 			if ((lednummer > 0) && (lednummer < 17)) { ledc_led_setpwm(I2CSLAVE_ADDR_PLED01, lednummer, 0);  }
+			else { printf("Error cmd getcmd: <l1:n> LED-number %i not valid!\n", lednummer);}
 		}
 
 		return 0;
 	}
+
+	else if(!strcmp(singlecmd, "lr"))	// <lr>	// TODO: LED-controller reset - nur für Test
+		{
+			ledc_reset();
+			return 0;
+		}
 
 
 

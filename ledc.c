@@ -105,12 +105,16 @@ than 32 bytes.
 void ledc_init(int slaveaddr)
 {
 	int i2c_fd;
-	const __u8 leddata[] = { 0xff, 0xff, 0xff, 0xff };
+	const __u8 leddata_full[] = { 0xff, 0xff, 0xff, 0xff };
+	const __u8 leddata_nofx[] = { 0xaa, 0xaa, 0xaa, 0xaa };	// nur individueller Helligkeitswert, kein Blinken/Gesamthelligkeit
+
+	const __u8 fullinit[] = { 0x81, 0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x00, 0xff, 0xff, 0xff, 0xff  };
 
 	i2c_fd = i2c_open_slave(slaveaddr);
 
 	// Zuerst wird der allgemeine Betriebsmodus konfiguriert: Mode1-Register einstellen (sleep auf off)
 	if (i2c_smbus_write_byte_data(i2c_fd, PCA9622_ADDR_MODE1, 0x81) < 0)
+	//if (i2c_smbus_write_i2c_block_data(i2c_fd, PCA9622_ADDR_MODE1, 24, fullinit) < 0)
 	{
 		printf("Error: LED-Controller: setting Mode1 register failed! LED-Controller is not active!\n");
 		PLED01_ok = 0;
@@ -127,7 +131,8 @@ void ledc_init(int slaveaddr)
 
 	if (PLED01_ok)	// nur machen, wenn der Chip ansprechbar ist
 	{
-		if (i2c_smbus_write_i2c_block_data(i2c_fd, PCA9622_ADDR_LEDOUT0 + PCA9622_AUTOINC_ALL, 4, leddata) < 0)	// <0 bedeutet Fehler
+		usleep(10000);	// TODO: test: kurz warten (ys)
+		if (i2c_smbus_write_i2c_block_data(i2c_fd, PCA9622_ADDR_LEDOUT0 + PCA9622_AUTOINC_ALL, 4, leddata_nofx) < 0)	// <0 bedeutet Fehler
 		{
 			printf("Error: ledcontroller: setting LED driver output state registers failed!\n");
 		}
