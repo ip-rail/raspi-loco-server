@@ -15,3 +15,8 @@ Raspberry Pi network server software for controlling G-scale train engines over 
 * Source in ein (User-) Verzeichnis kopieren
 * kompilieren: gcc -Wall -o raspilokserver raspilokserver.c commands.c uart.c ledc.c raspinetwork.c -lwiringPi -lconfig -lpthread
 * läuft bisher nur unter root
+
+## Funktionalität
+* übernimmt WLAN-Kommunikation für ATMega2561 board
+* i2c LED-Controller
+* Konfiguration über lokserver.cfg (im Programmverzeichnis)
