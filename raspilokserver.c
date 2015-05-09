@@ -26,6 +26,7 @@
 #include "raspinetwork.h"
 #include "raspilokserver.h"
 #include "uart.h"
+#include "raspispec.h"
 
 
 char cmdbuffer[256];	// nur für tcpserver (eigener thread) empfangener Befehltext der aufgehoben weil noch unvollständig ist
@@ -81,6 +82,9 @@ int main() {
 	printLocalIPs();	// TODO: test - die richtige IP muss noch ausgewählt werden (damit man zB die eigenen UDP-Meldungen ignorieren kann)
 
 	uart_init();	//uart0 Konfiguration
+
+	raspi_id();		// Raspi board info auslesen
+
 
 
 	//wiringPiSetup();	// wird eventuell noch für andere Dinge gebraucht
