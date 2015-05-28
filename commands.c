@@ -167,6 +167,7 @@ int parsecmd(char *singlecmd)
 			if ((lednummer > 0) && (lednummer < 17)) { ledc_led_setpwm(I2CSLAVE_ADDR_PLED01, lednummer, 255);  }	//TODO: LED vorerst voll aufdrehen
 			else { printf("Error cmd getcmd: <l1:n> LED-number %i not valid!\n", lednummer);}
 		}
+		else { sendsimplecmdtomc(singlecmd); }	// cmd an MC weitergeben
 
 		return 0;
 	}
@@ -186,6 +187,7 @@ int parsecmd(char *singlecmd)
 			if ((lednummer > 0) && (lednummer < 17)) { ledc_led_setpwm(I2CSLAVE_ADDR_PLED01, lednummer, 0);  }
 			else { printf("Error cmd getcmd: <l1:n> LED-number %i not valid!\n", lednummer);}
 		}
+		else { sendsimplecmdtomc(singlecmd); }	// cmd an MC weitergeben
 
 		return 0;
 	}

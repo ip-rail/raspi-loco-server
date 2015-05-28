@@ -8,8 +8,9 @@
 #ifndef RASPISPEC_H_
 #define RASPISPEC_H_
 
-extern void raspi_id();
-
 extern struct rpidata raspidata;
+
+extern void raspi_id();
+extern int getRaspiTemp();
 
 #endif /* RASPISPEC_H_ */

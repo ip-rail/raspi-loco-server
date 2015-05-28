@@ -8,11 +8,13 @@
  */
 
 
+#include <fcntl.h> // for open
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
+#include <unistd.h> // for close
 
 #include "raspispec.h"
 
@@ -26,6 +28,7 @@ struct rpidata {
 	char serial[17];		// Pi serial number
 } raspidata;
 
+const char *raspitemppath = "/sys/class/thermal/thermal_zone0/temp";
 
 // Raspi Board identifizieren
 /*
@@ -54,13 +57,12 @@ void raspi_id()
 	if (bytes_read == sizeof (buffer)) { printf("Reading /proc/cpuinfo: filebuffer not big enough!\n"); return;}
 
 	// NUL-terminate the text
-	buffer[bytes_read] == '\0';
+	buffer[bytes_read] = '\0';
 
 	// looking for this:
 	//Hardware        : BCM2708
 	//Revision        : 000f
 	//Serial          : 00000000b43b4b37
-
 
 
 
@@ -217,3 +219,19 @@ void raspi_id()
 }
 
 // Temp auslesen!!!
+int getRaspiTemp()
+{
+	int fd, readcount;
+	char buffer[10];
+	int temp = 0;
+
+	if ((fd = open(raspitemppath, O_RDONLY)) != -1)
+	{
+		readcount = read(fd, buffer, 9);	// max 9 Zeichen lesen (es sollten 5 sein)
+		if (readcount >= 2) { temp = strtol(buffer, NULL, 10); }
+		close(fd);
+	}
+
+	return temp;
+}
+
