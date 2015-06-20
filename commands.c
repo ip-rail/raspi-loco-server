@@ -141,7 +141,7 @@ int parsecmd(char *singlecmd)
 	}
 
 
-	else if(!strcmp(singlecmd, "alive"))	// <alive>	// dummy-Befehl für akive-Meldungen von der Gegenstelle
+	else if(!strcmp(singlecmd, "alive"))	// <alive>	TODO: weg damit! // dummy-Befehl für aktive-Meldungen von der Gegenstelle
 	{
 		printf("Alive!\n");
 		return 0;
