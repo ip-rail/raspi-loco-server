@@ -18,8 +18,6 @@
 #include <sys/select.h>
 #include <sys/time.h>
 
-#include "wiringPi.h"
-#include "wiringPiI2C.h"
 #include "libconfig.h"
 #include "commands.h"
 #include "ledc.h"
@@ -38,7 +36,9 @@ pthread_mutex_t mutex_tcpsend = PTHREAD_MUTEX_INITIALIZER;	// mutex für tcp send
 int8_t i2c_active = -1;		// -1: i2c nicht aktiv. 0/1: aktive i2c-Bus-Nummer
 uint8_t PLED01_ok = 0;		// erster PLED01 ist ok? 0: nicht ok, 1:ok
 int uart0_filestream;	// für UART Kommunikation
-int alivecheck;		// aus dem .cfg file -> soll geprüft werden, ob die gegenstelle noch aktiv ist?
+int alivecheck = 0;		// aus dem .cfg file -> soll geprüft werden, ob die gegenstelle noch aktiv ist?
+int servermode = 1;		// aus dem .cfg file -> 0: transparenter Modus (ALLE Daten werden weitergereicht, Befehle werden am Raspi ignoriert) als Wiznet-Ersatz für die Tests
+						// 1: Standardmodus: Raspi reicht nur bestimmte Befehle an den MC weiter (in commands.c definiert)
 int tcpconnectionsock = 0;	// zum Schreiben an den Controller (Gegenstelle der tcp-Verbindung)
 
 int main() {
@@ -78,6 +78,9 @@ int main() {
 	if (config_lookup_int(&cfg, "alivecheck", &alivecheck)) { printf("alivecheck = %i\n", alivecheck); }
 	else { printf("No 'alivecheck' setting in configuration file.\n"); }
 
+	if (config_lookup_int(&cfg, "servermode", &servermode)) { printf("servermode = %i\n", servermode); }
+	else { printf("No 'servermode' setting in configuration file.\n"); }
+
 
 	printLocalIPs();	// TODO: test - die richtige IP muss noch ausgewählt werden (damit man zB die eigenen UDP-Meldungen ignorieren kann)
 
@@ -87,8 +90,9 @@ int main() {
 
 
 
-	//wiringPiSetup();	// wird eventuell noch für andere Dinge gebraucht
-	//i2cslave = wiringPiI2CSetup(I2CSLAVEID);	// TODO: bricht mit Fehler ab (!!!), falls i2c nicht existiert ("no such file or directory")
+	// wiringPiSetup();	// wird eventuell noch für andere Dinge gebraucht
+	// i2cslave = wiringPiI2CSetup(I2CSLAVEID);	// TODO: bricht mit Fehler ab (!!!), falls i2c nicht existiert ("no such file or directory")
+	// daher i2c ohne wiringPi verwenden! (wiringPi wird überhaupt nicht mehr benötigt)
 
 	i2c_init();	// i2c bus check
 	ledc_init(I2CSLAVE_ADDR_PLED01);	// (1.) LED-Controller initialisieren

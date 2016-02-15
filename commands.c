@@ -15,8 +15,6 @@
 #include <sys/select.h>
 #include <sys/time.h>
 
-//#include "wiringPi.h"
-//#include "wiringPiI2C.h"
 #include "raspilokserver.h"
 #include "commands.h"
 #include "ledc.h"
@@ -100,13 +98,32 @@ int getcmd(char *text, char *cmd)
 
 int parsecmd(char *singlecmd)
 {
-	//unsigned char sendcmd[UART_MAXCMDLEN] = "<";	// für Befehle, die zum Mikrocontroller weitergesendet werden sollen
+	if(!strcmp(singlecmd, "exit"))	// <exit>
+	{
+		printf("Received command to exit the server\n");
+		return 1;
+	}
+
+	else if(!strcmp(singlecmd, "bye"))	// <bye> statt <dc>
+	{
+		printf("Received command to disconnect the client\n");
+		return 2;
+	}
+
+	// --- vor dieser Zeile Befehle auswerten, die auch im transparenten Modus (servermode 0) am Raspi verarbeitet werden sollen ----------------------------------
+
+	if (servermode == 0) 	// im servermode 0 ALLE weitern Befehle direkt an den MC senden
+	{
+		sendsimplecmdtomc(singlecmd);	// cmd an MC weitergeben
+		return 0;	// Befehl wird hier abgearbeitet
+	}
+
 
 	if(!strcmp(singlecmd, "stop"))	// <stop>
 	{
 		printf("Received STOP command\n");
 		sendsimplecmdtomc(singlecmd);	// cmd an MC weitergeben
-		return 0;	// Befehl wird hier abgearbeitet
+		return 0;
 	}
 
 	else if(!strncmp(singlecmd, "sd:", 3))	// <sd:nnn>  Geschwindgkeitsbefehl
@@ -127,19 +144,6 @@ int parsecmd(char *singlecmd)
 		sendsimplecmdtomc(singlecmd);	// cmd an MC weitergeben
 		return 0;
 	}
-
-	else if(!strcmp(singlecmd, "exit"))	// <exit>
-	{
-		printf("Received command to exit the server\n");
-		return 1;
-	}
-
-	else if(!strcmp(singlecmd, "bye"))	// <bye> statt <dc>
-	{
-		printf("Received command to disconnect the client\n");
-		return 2;
-	}
-
 
 	else if(!strcmp(singlecmd, "alive"))	// <alive>	TODO: weg damit! // dummy-Befehl für aktive-Meldungen von der Gegenstelle
 	{

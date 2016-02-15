@@ -21,6 +21,7 @@ extern int8_t i2c_active;			// -1: i2c nicht aktiv. 0/1: aktive i2c-Bus-Nummer
 extern uint8_t PLED01_ok;		// erster PLED01 ist ok? 0: nicht ok, 1:ok
 extern int uart0_filestream;		// für UART Kommunikation
 extern int alivecheck;				// aus dem .cfg file -> soll geprüft werden, ob die gegenstelle noch aktiv ist?
+extern int servermode;				//aus dem .cfg file -> 0: transparenter Modus / 1: Raspi-Modus
 extern int tcpconnectionsock;		// zum Schreiben an den Controller (Gegenstelle der tcp-Verbindung)
 
 #endif /* RASPILOKSERVER_H_ */
