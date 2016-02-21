@@ -262,7 +262,7 @@ void *udpserver(void *ptr)
 	{
 		printf("udp alive check\n");
 		// nur senden, wenn kein Controller verbunden ist
-		if (!getConnectionStatus()) { sendabroadcast(sock, *udpport, "<iarcs:raspicamserver1>"); }
+		if (!getConnectionStatus()) { sendabroadcast(sock, *udpport, "<iam:1:raspilok1>"); }
 		sleep(10);	//10s warten
 		if (getNWThreadEnd()) //exit check (wird threadsicher abgefragt)
 		{

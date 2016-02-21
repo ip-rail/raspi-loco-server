@@ -13,7 +13,7 @@ Raspberry Pi network server software for controlling G-scale train engines over 
 
 ## Installation am Raspi
 * Source in ein (User-) Verzeichnis kopieren
-* kompilieren: gcc -Wall -o raspilokserver raspilokserver.c commands.c uart.c ledc.c raspinetwork.c -lconfig -lpthread
+* kompilieren: gcc -Wall -o raspilokserver raspilokserver.c commands.c uart.c ledc.c raspinetwork.c raspispec.c -lconfig -lpthread
 * läuft bisher nur unter root
 
 ## Funktionalität
