@@ -7,6 +7,7 @@
  *      Author: Michael Brunnbauer
  */
 
+#include <arpa/inet.h>
 #include <fcntl.h>
 #include <linux/i2c-dev.h>
 #include <stdio.h>

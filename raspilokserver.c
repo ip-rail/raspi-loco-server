@@ -6,17 +6,20 @@
  *  Author: Michael Brunnbauer
  */
 
-#include <stdio.h>
-#include <unistd.h>
-#include <sys/socket.h>
-#include <sys/types.h>
+#include <arpa/inet.h>
+#include <ifaddrs.h>
+#include <net/if.h>
 #include <netinet/in.h>
 #include <pthread.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/select.h>
+#include <sys/socket.h>
 #include <sys/time.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 #include "libconfig.h"
 #include "commands.h"
@@ -39,7 +42,10 @@ int uart0_filestream;	// für UART Kommunikation
 int alivecheck = 0;		// aus dem .cfg file -> soll geprüft werden, ob die gegenstelle noch aktiv ist?
 int servermode = 1;		// aus dem .cfg file -> 0: transparenter Modus (ALLE Daten werden weitergereicht, Befehle werden am Raspi ignoriert) als Wiznet-Ersatz für die Tests
 						// 1: Standardmodus: Raspi reicht nur bestimmte Befehle an den MC weiter (in commands.c definiert)
-int tcpconnectionsock = 0;	// zum Schreiben an den Controller (Gegenstelle der tcp-Verbindung)
+int tcpconnectionsock = -1;	// zum Schreiben an den Controller (Gegenstelle der tcp-Verbindung)
+char ipadress_eth0[INET_ADDRSTRLEN];	// eigenen eth0 IP-Adresse
+in_addr_t eth0ip;		// eigenen eth0 IP-Adresse als Zahl
+
 
 int main() {
 

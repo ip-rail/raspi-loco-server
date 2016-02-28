@@ -23,5 +23,7 @@ extern int uart0_filestream;		// für UART Kommunikation
 extern int alivecheck;				// aus dem .cfg file -> soll geprüft werden, ob die gegenstelle noch aktiv ist?
 extern int servermode;				//aus dem .cfg file -> 0: transparenter Modus / 1: Raspi-Modus
 extern int tcpconnectionsock;		// zum Schreiben an den Controller (Gegenstelle der tcp-Verbindung)
+extern char ipadress_eth0[INET_ADDRSTRLEN];	// eigenen eth0 IP-Adresse
+extern in_addr_t eth0ip;		// eigenen eth0 IP-Adresse als Zahl
 
 #endif /* RASPILOKSERVER_H_ */

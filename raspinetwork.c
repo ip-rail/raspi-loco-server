@@ -13,15 +13,15 @@
 #include <netdb.h>
 #include <netinet/in.h>
 #include <pthread.h>
-#include <stdio.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/ioctl.h>
-#include <sys/types.h>
-#include <sys/socket.h>
 #include <sys/select.h>
+#include <sys/socket.h>
 #include <sys/time.h>
+#include <sys/types.h>
 #include <time.h>
 #include <unistd.h>
 
@@ -61,39 +61,50 @@ void *tcpserver(void *ptr)
 	int *tcpport;
 	in_addr_t clientip;	// zur Ermittlung der Client-IP
 	int treadrc;
+	int yes=1;			// for setsockopt()
 	pthread_t thread_check_every_s;	// thread für check_every_second
 
 	tcpport = (int *) ptr;
-
-	printf("Starting tcpserver on port %i...\n", *tcpport);
-
-	listen_desc = socket(AF_INET, SOCK_STREAM, 0);
-	if(listen_desc < 0) { printf("Failed creating socket\n"); return NULL; }
 
 	bzero((char *)&serv_addr, sizeof(serv_addr));
 	serv_addr.sin_family = AF_INET;
 	serv_addr.sin_addr.s_addr = INADDR_ANY;
 	serv_addr.sin_port = htons(*tcpport);
 
-	int binderror = bind(listen_desc, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
-	if ( binderror < 0)
-	{
-		printf("Failed to bind. Error %i\n", binderror);
-		return NULL;
-	}
+	clilen = sizeof(client_addr);
 
-	listen(listen_desc, 1);	// nur 1 Client zulassen
+	printf("Starting tcpserver on port %i...\n", *tcpport);
 
 	while(!end) // main server loop
 	{
 		printf("entering main server loop..\n");
+		listen_desc = socket(AF_INET, SOCK_STREAM, 0);
+		if(listen_desc < 0) { printf("Failed creating socket\n"); return NULL; }
 
-		clilen = sizeof(client_addr);
+		// lose the pesky "Address already in use" error message
+		if (setsockopt(listen_desc, SOL_SOCKET, SO_REUSEADDR, &yes,sizeof(int)) == -1)
+		{
+			printf("Failed setting socket option SO_REUSEADDR\n"); return NULL;
+		}
+
+		int binderror = bind(listen_desc, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
+		if ( binderror < 0)
+		{
+			printf("Failed to bind. Error %i\n", binderror);
+			return NULL;
+		}
+
+		listen(listen_desc, 0);	// nur 1 Client zulassen //TODO: warteschlange 1 client oder 0 Clients?? 1 ist schlecht!
+		// baccklog (der 2. Parameter) auf 0 oder 1 hilft aber nichts, weil weitere Verbindungen akzeptiert und geparkt werden
+		// bis wieder accept() aufgerufen wird (nachdem die 1. Verbindung getrennt wurde). Dann wird die nächste wartende
+		// Verbindung aufgenommen. Die wartenden Clients wissen davon aber nichts! Sie glauben, sie sind bereits verbunden.
+		// Abhilfe: listen_desc Socket sofort nach accept() schließen und vor dem nächsten accept() wieder einen neuen aufmachen.
 
 		// ------- auf Clientverbindung warten -------------------------------------------------
 		conn_desc = accept(listen_desc, (struct sockaddr *) &client_addr, &clilen);
 		if (conn_desc < 0) {  printf("ERROR on accept"); return NULL; }
 
+		close(listen_desc);	// listen socket gleich schließen, damit sich keine weiteren Devices verbinden können
 		tcpconnectionsock = conn_desc;	// in globaler Variable speichern (für tcp_send())
 
 		setConnected();	// jetzt ist ein Client verbunden
@@ -126,7 +137,7 @@ void *tcpserver(void *ptr)
 		printf("check_every_second thread ended.\n");
 
 		close(conn_desc);
-		tcpconnectionsock = 0;
+		tcpconnectionsock = -1;
 		setDisconnected();	// jetzt ist kein Client mehr verbunden
 
 		if (getNWThreadEnd()) { end = 1; }
@@ -134,7 +145,6 @@ void *tcpserver(void *ptr)
 	} // End main listening loop
 
 	printf("exiting main server loop..\n");
-	close(listen_desc);
 	return NULL;
 }
 
@@ -312,6 +322,27 @@ void *udp_reader(void *ptr)
 			bytes[2] = (fromip >> 16) & 0xFF;
 			bytes[3] = (fromip >> 24) & 0xFF;
 			printf("UDP-Message received from IP-Address = %d.%d.%d.%d\n", bytes[3], bytes[2], bytes[1], bytes[0]);
+
+			if (fromip == eth0ip) // UDP-Meldung von sich selbst empfangen -> ignorieren
+			{
+				//printf("TEST: schon wieder UDP-Meldung von mir selbst empfangen!\n");
+			}
+			else
+			{
+				// TODO: UDP-Befehl auswerten
+				/* aber Achtung: muss wg. der unterschiedlichen Threads abgesichert werden
+				 *
+				 * können beide mit demselben checkcmd(char *nettxt) arbeiten?
+				 * ist es für die cmds egal, ob TCP oder UDP?
+				 * -> wrapper-function mit mutex-lock ist am einfachsten
+				 *
+				 */
+
+			}
+
+
+
+
 		}
 
 		//sendabroadcast(sock, *udpport, "<iarcs:raspicamserver1>");	// nur Test
@@ -502,12 +533,20 @@ void printLocalIPs()
 	        if (!ifa->ifa_addr) {
 	            continue;
 	        }
-	        if (ifa->ifa_addr->sa_family == AF_INET) { // check it is IP4
+	        if (ifa->ifa_addr->sa_family == AF_INET) { // check if it is IP4
 	            // is a valid IP4 Address
 	            tmpAddrPtr=&((struct sockaddr_in *)ifa->ifa_addr)->sin_addr;
 	            char addressBuffer[INET_ADDRSTRLEN];
 	            inet_ntop(AF_INET, tmpAddrPtr, addressBuffer, INET_ADDRSTRLEN);
-	            printf("%s IP Address %s\n", ifa->ifa_name, addressBuffer);
+	            printf("%s IP Address %s\n", ifa->ifa_name, addressBuffer);			// Ausgabe zB.: "eth0 IP Address 10.0.0.71"
+
+	            if(!strncmp(ifa->ifa_name, "eth0", 4))
+	            {
+	            	printf("copying ip string\n");	// TODO: nur für test
+	            	strncpy(ipadress_eth0, addressBuffer, INET_ADDRSTRLEN);			// eth0 IP-Adresse (v4) merken
+	            	eth0ip = htonl(((struct sockaddr_in *)ifa->ifa_addr)->sin_addr.s_addr);	// Bytereihenfolge berichtigen
+	            }
+
 	        } else if (ifa->ifa_addr->sa_family == AF_INET6) { // check it is IP6
 	            // is a valid IP6 Address
 	            tmpAddrPtr=&((struct sockaddr_in6 *)ifa->ifa_addr)->sin6_addr;
@@ -563,7 +602,7 @@ uint8_t getConnectionStatus()
 	return status;
 }
 
-uint8_t getNWThreadEnd()
+uint8_t getNWThreadEnd()	// zeigt an, dass alle Netzwerk-Threads beendet werden sollen (=Vorbereitung für Programmausstieg)
 {
 	uint8_t ende = 0;
 	pthread_mutex_lock( &mutex_end );

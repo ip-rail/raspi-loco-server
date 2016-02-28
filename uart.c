@@ -6,6 +6,7 @@
  *      based on this: http://www.raspberry-projects.com/pi/programming-in-c/uart-serial-port/using-the-uart
  */
 
+#include <arpa/inet.h>
 #include <stdio.h>
 #include <sys/types.h>
 #include <unistd.h>			//Used for UART

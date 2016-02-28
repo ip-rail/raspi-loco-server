@@ -27,7 +27,7 @@ int checkcmd(char *nettxt)
 	char *start, *end;
 	char command[UART_MAXCMDLEN+1];	// auszuwertender Befehl
 
-	printf("Text to check: '%s'\n", nettxt);
+	//printf("Text to check: '%s'\n", nettxt);
 	bzero(command,UART_MAXCMDLEN);
 
 	// cmdbuffer (der aufghobene, unvollständige befehlstext) muss mit einem '<' anfangen! -> checken, alles davor entfernen
