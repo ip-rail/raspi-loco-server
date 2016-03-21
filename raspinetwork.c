@@ -151,7 +151,7 @@ void *tcpserver(void *ptr)
 void *tcp_clientloop(void *ptr)
 {
 	uint8_t end = 0, hangup = 0;	// 1 bedeutet: bei hangup: Ausstieg aus der Client-Verbindung, end: Ausstieg aus der Server-Schleife (tcpserver thread)
-	char buffer[256];
+	char buffer[1024];
 	int n;
 	int *conn_desc;
 
@@ -159,9 +159,9 @@ void *tcp_clientloop(void *ptr)
 
 	while(!hangup)
 	{
-		printf("entering client loop..\n");
-		bzero(buffer,256);
-		n = read(*conn_desc,(void*)buffer,255);
+		//printf("entering client loop..\n");
+		bzero(buffer,1024);
+		n = read(*conn_desc,(void*)buffer,1023);
 		// blocking read ist eine Katastrophe, wenn Client nicht mehr reagiert
 		// tcpserver bleibt beim read hängen, außer die Verbindung wird vom Client ordnungsgemäß geschlossen (tcp-intern)
 		// non-blocking hat auch Nachteile -> daher Clientloop in eigenen thread auslagern und bei Bedarf killen!!!
@@ -176,9 +176,7 @@ void *tcp_clientloop(void *ptr)
 
 			//printf("tcp Text empfangen: '%s'\n",buffer);
 
-
-
-			int ergebnis = checkcmd(buffer);	// Befehl auswerten
+			int ergebnis = checkcmd(buffer, CMD_FROM_NETWORK, tcp_cmdbuffer);	// Befehl auswerten
 
 			switch(ergebnis)
 			{
@@ -272,7 +270,8 @@ void *udpserver(void *ptr)
 	{
 		printf("udp alive check\n");
 		// nur senden, wenn kein Controller verbunden ist
-		if (!getConnectionStatus()) { sendabroadcast(sock, *udpport, "<iam:1:raspilok1>"); }
+		if (!getConnectionStatus()) { sendabroadcast(sock, *udpport, cmd_iam); }
+
 		sleep(10);	//10s warten
 		if (getNWThreadEnd()) //exit check (wird threadsicher abgefragt)
 		{
@@ -300,7 +299,7 @@ void *udp_reader(void *ptr)
 	struct sockaddr_in from;
 	socklen_t fromlen;
 	in_addr_t fromip;	// zur Ermittlung der Client-IP
-	char buf[1024];
+	char buf[1024];	// buffer für empfangene Daten
 
 	myargs = (struct nwthreadargs *)ptr;
 	udpport = myargs->port;
@@ -311,7 +310,7 @@ void *udp_reader(void *ptr)
 	fromlen = sizeof(struct sockaddr_in);
 	while (!end) {
 		printf("udp reader loop\n");
-		n = recvfrom(sock,buf,1024,0,(struct sockaddr *)&from,&fromlen);	// blockt !!
+		n = recvfrom(sock,buf,1023,0,(struct sockaddr *)&from,&fromlen);	// blockt !!
 		if (n < 0) { printf("Error on receiving UDP\n"); }
 		else //Message erhalten
 		{
@@ -321,7 +320,6 @@ void *udp_reader(void *ptr)
 			bytes[1] = (fromip >> 8) & 0xFF;
 			bytes[2] = (fromip >> 16) & 0xFF;
 			bytes[3] = (fromip >> 24) & 0xFF;
-			printf("UDP-Message received from IP-Address = %d.%d.%d.%d\n", bytes[3], bytes[2], bytes[1], bytes[0]);
 
 			if (fromip == eth0ip) // UDP-Meldung von sich selbst empfangen -> ignorieren
 			{
@@ -329,12 +327,14 @@ void *udp_reader(void *ptr)
 			}
 			else
 			{
+				printf("UDP-Message received from IP-Address = %d.%d.%d.%d\n", bytes[3], bytes[2], bytes[1], bytes[0]);
+
 				// TODO: UDP-Befehl auswerten
 				/* aber Achtung: muss wg. der unterschiedlichen Threads abgesichert werden
 				 *
-				 * können beide mit demselben checkcmd(char *nettxt) arbeiten?
-				 * ist es für die cmds egal, ob TCP oder UDP?
-				 * -> wrapper-function mit mutex-lock ist am einfachsten
+				 * können beide mit demselben checkcmd(char *nettxt) arbeiten? -> jetzt ja
+				 * ist es für die cmds egal, ob TCP oder UDP? nein?
+				 * (-> wrapper-function mit mutex-lock ist am einfachsten) rly?
 				 *
 				 */
 

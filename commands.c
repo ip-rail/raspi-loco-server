@@ -11,33 +11,35 @@
 #include <sys/types.h>
 #include <netinet/in.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 #include <sys/select.h>
 #include <sys/time.h>
 
 #include "raspilokserver.h"
 #include "commands.h"
+#include "raspinetwork.h"
 #include "ledc.h"
 #include "uart.h"
 
 
 
-int checkcmd(char *nettxt)
+int checkcmd(char *nettxt, int cmdorigin, char *cmdbuffer)
 {
 	char *start, *end;
 	char command[UART_MAXCMDLEN+1];	// auszuwertender Befehl
 
 	//printf("Text to check: '%s'\n", nettxt);
-	bzero(command,UART_MAXCMDLEN);
+	bzero(command,UART_MAXCMDLEN+1);
 
-	// cmdbuffer (der aufghobene, unvollständige befehlstext) muss mit einem '<' anfangen! -> checken, alles davor entfernen
+	// cmdbuffer (=der aufghobene, unvollständige befehlstext) muss mit einem '<' anfangen! -> checken, alles davor entfernen
 	start=strchr(cmdbuffer, '<');
 	end=strchr(cmdbuffer, '>');
 
 
 	if (start == NULL) // wenn kein Startzeichen vorhanden ist, ist der komplette Buffer zu löschen
 	{
-		if (cmdbuffer[0] != 0) { bzero(cmdbuffer,256); }
+		if (cmdbuffer[0] != 0) { bzero(cmdbuffer,CMDBUFFER_SIZE); }
 	}
 	else
 	{
@@ -48,25 +50,34 @@ int checkcmd(char *nettxt)
 		}
 	}
 
-	if (strlen(cmdbuffer) + strlen(nettxt) < 256) { strcat(cmdbuffer, nettxt); }	// neu empfangenen Text an aufgehobenen Befehlstext anhängen
+	if (strlen(cmdbuffer) + strlen(nettxt) < CMDBUFFER_SIZE) { strcat(cmdbuffer, nettxt); }	// neu empfangenen Text an aufgehobenen Befehlstext anhängen
 	else { printf("Fehler: cmdbuffer ist zu klein!!!\n"); }	//TODO: was machen..
 
 	int gefunden = getcmd(cmdbuffer, command);	// liefert einen Befehl in command
 	while (gefunden)
 	{
-		//printf("Test3\n");
-		int returnwert = parsecmd(command);
+		int returnwert;
+
+		if (cmdorigin == CMD_FROM_NETWORK) { returnwert = parsecmd(command); }
+		else if (cmdorigin == CMD_FROM_UART) { returnwert = parse_mc_cmd(command); }
+
 
 		if (returnwert > 0) { return returnwert; }	// Befehl ausführen, Returnwert 2 = Verbindung mit Client trennen, 1 = exit tcpserver
 		else { gefunden = getcmd(cmdbuffer, command);	} // prüfen, ob noch ein vollständiger Befehl zur Ausführung vorhanden ist
 	}
 
 	return 0;
+
+	/* Returnwert
+	 * 0: Standardwert
+	 * 1: exit tcpserver, von parsecmd()
+	 * 2: Verbindung mit Client trennen (tcpserver), von parsecmd()
+	 */
 }
 
 int getcmd(char *text, char *cmd)
 {
-	// liefert einen Befehl aus text in cmd. Returnwert 1, wenn ein Befehl gefunden wurde
+	// liefert einen Befehl aus text in cmd. Returnwert 1, wenn ein Befehl gefunden wurde, sonst 0
 	char *start, *end;
 	int cmdlen;
 
@@ -85,17 +96,18 @@ int getcmd(char *text, char *cmd)
 			if (cmdlen > 0) { strncpy(cmd, start+1, end-start-1); }	// gültigen Befehl herauskopieren (ohne <>)
 			else { printf("ausstieg cmdlen\n"); return 0; }
 
-			//gültigen Befehl aus cmdbuffer entfernen (samt <>)
+			//gültigen Befehl aus text entfernen (samt <>)
 			if (strlen(text) > (unsigned int)cmdlen) { strmovetostart(text, end+1); }	// wenn noch weitere daten vorhanden , dann diese an den anfang verschieben
-			else { bzero(cmdbuffer,256); }	// sonst cmdbuffer löschen
-			printf("getcmd: Befehl gefunden: %s\n", cmd);
+			else { bzero(text,CMDBUFFER_SIZE); }	// sonst text löschen
+			//printf("getcmd: Befehl gefunden: %s\n", cmd);
 			return 1;	// es wurde ein Befehl gefunden!
 		}
 	}
-	printf("getcmd: kein Befehl im text gefunden\n");
+	//printf("getcmd: kein Befehl im text gefunden\n");
 	return 0;	// es wurde kein Befehl gefunden!
 }
 
+//Befehle aus dem Netzwerk auswerten
 int parsecmd(char *singlecmd)
 {
 	if(!strcmp(singlecmd, "exit"))	// <exit>
@@ -209,6 +221,49 @@ int parsecmd(char *singlecmd)
 }
 
 
+// Befehle vom Mikrocontroller auswerten und wenn nötig an Netzwerk weiterleiten
+int parse_mc_cmd(char *singlecmd)
+{
+
+	if(!strncmp(singlecmd, "iam:1:", 6))	// <iam:1:name>  Lok meldet ihren Namen -> speichern in lokname[41];
+	{
+		bzero(lokname,sizeof(lokname));
+		//strlcpy(lokname, singlecmd+6, sizeof(lokname)); // Befehl gibt's hier nicht?
+		strncpy (lokname, singlecmd+6, strlen(singlecmd+6));	// TODO: Achtung: Länge des Loknamens ist nicht abgesichert -> ändern
+		printf("Received Loknamen: %s\n", lokname);
+		sprintf(cmd_iam, "<iam:1:%s>",lokname);		// Befehlstext für iam-Meldung ändern
+		// TODO: iam Befehl weitersenden (bei bestehender Verbindung mit tcp, bei aktivem Netzwerk mit udp, sonst nicht)
+		return 0;
+	}
+	else	// Befehl nicht gefunden
+	{
+		if (servermode == SERVERMODE_TRANSPARENT)
+		{
+			sendCMDtoNet(singlecmd);	// im transparenten Modus unbekannte Befehle an Controller weitersenden
+		}
+
+		return 0;
+	}
+}
+
+
+// TODO: parse_udp_cmd() -> Meldungen für alle auswerten
+
+
+//Befehlstext wieder mit spitzen Klammern versehen und +ber tcp-Verbindung senden
+void sendCMDtoNet(char *cmddata)
+{
+	char sendcmd[UART_MAXCMDLEN+1] = "<";
+
+	if (strlen(cmddata) <= (UART_MAXCMDLEN-2))
+	{
+		strcat (sendcmd, cmddata);
+		strcat (sendcmd, ">");
+		tcp_send_safe(sendcmd);
+	}
+}
+
+
 // sendsimplecmdtomc: Command über UART an den Mikrocontroller weiterschicken - für einfache Befehle, die nur geklammert <>
 // und nicht spezifisch zusammengesetzt werden müssen
 void sendsimplecmdtomc(char *cmddata)
@@ -218,7 +273,7 @@ void sendsimplecmdtomc(char *cmddata)
 	strcat (sendcmd, cmddata);
 	strcat (sendcmd, ">");
 
-	printf("sendsimplecmdtomc: Send cmd to MC: %s\n", sendcmd);
+	//printf("sendsimplecmdtomc: Send cmd to MC: %s\n", sendcmd);
 	uart_write(sendcmd);	// cmd an MC weitergeben
 }
 

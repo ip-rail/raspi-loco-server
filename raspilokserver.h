@@ -8,10 +8,20 @@
 #ifndef RASPILOKSERVER_H_
 #define RASPILOKSERVER_H_
 
-#define UART_MAXCMDLEN 32		// maximal erlaubte Länge eines Befehls "<*>" incl. <> Wert muss mit der gleichnamigen Definition in lokserver identisch sein!!
+#define UART_MAXCMDLEN 64		// maximal erlaubte Länge eines Befehls "<*>" incl. <> Wert muss mit der gleichnamigen Definition in lokserver identisch sein!!
+
+#define SERVERMODE_TRANSPARENT	0
+
+#define CMD_FROM_NETWORK	1	// für die Befehlsauswertung zur Unterscheidung Befehl vom Netzwerk (Controller) oder MC
+#define CMD_FROM_UART		2
+
+#define CMDBUFFER_SIZE		1024		// Buffer-Größe für die einzelnen Befehls-Buffer mit dem noch nicht ausgewerteten Rest (unvollständige Befehle)
 
 // extern verwendete Variablen
-extern char cmdbuffer[256];	// nur für tcpserver (eigener thread) empfangener Befehltext der aufgehoben weil noch unvollständig ist
+extern char tcp_cmdbuffer[CMDBUFFER_SIZE];	// nur für tcpserver (eigener thread) empfangener Befehltext der aufgehoben weil noch unvollständig ist
+extern char uart_cmdbuffer[CMDBUFFER_SIZE];	// selbes für UART-cmds
+extern char lokname[41];
+extern char cmd_iam[UART_MAXCMDLEN];
 extern uint8_t threadend;			// 1 = alle threads beenden
 extern uint8_t connected;			// 1 = client connected
 extern pthread_mutex_t mutex_end;	// mutex für threadend

@@ -30,7 +30,10 @@
 #include "raspispec.h"
 
 
-char cmdbuffer[256];	// nur für tcpserver (eigener thread) empfangener Befehltext der aufgehoben weil noch unvollständig ist
+char tcp_cmdbuffer[CMDBUFFER_SIZE];		// nur für tcpserver (eigener thread) empfangener Befehltext der aufgehoben weil noch unvollständig ist
+char uart_cmdbuffer[CMDBUFFER_SIZE];	// selbes für UART-cmds
+char lokname[41] = "raspilok1";			// zum zwischenspeichern des Loknamens
+char cmd_iam[UART_MAXCMDLEN] = "<iam:1:raspilok1>";	// Text für iam-Lok-Meldung (wird bei Namensänderung geändert
 uint8_t threadend = 0;		// 1 = alle threads beenden (für Zugriff mutex_end verwenden!!!!)
 uint8_t connected = 0;		// zeigt an, ob eine Netzwerkverbindung besteht (info zwischen den Netzwerk-Threads). 1=connected, 0= not connected
 pthread_mutex_t mutex_end = PTHREAD_MUTEX_INITIALIZER;	// mutex für threadend
@@ -63,8 +66,8 @@ int main() {
 
 	printf("Starting raspilokserver\n");
 	config_init(&cfg); // libconfig Initialization
-	bzero(cmdbuffer, 256); //Befehlspuffer löschen
-
+	bzero(tcp_cmdbuffer, CMDBUFFER_SIZE); //Befehlspuffer löschen
+	bzero(uart_cmdbuffer, CMDBUFFER_SIZE);
 
 	// Read the config-file. If there is an error, report it and exit.
 	if (!config_read_file(&cfg, config_file_name))
@@ -97,7 +100,7 @@ int main() {
 
 
 	// wiringPiSetup();	// wird eventuell noch für andere Dinge gebraucht
-	// i2cslave = wiringPiI2CSetup(I2CSLAVEID);	// TODO: bricht mit Fehler ab (!!!), falls i2c nicht existiert ("no such file or directory")
+	// i2cslave = wiringPiI2CSetup(I2CSLAVEID);	// bricht mit Fehler ab (!!!), falls i2c nicht existiert ("no such file or directory")
 	// daher i2c ohne wiringPi verwenden! (wiringPi wird überhaupt nicht mehr benötigt)
 
 	i2c_init();	// i2c bus check

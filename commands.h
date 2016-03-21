@@ -9,9 +9,11 @@
 #define COMMANDS_H_
 
 
-extern int checkcmd(char *nettxt);
+extern int checkcmd(char *nettxt, int cmdorigin, char *cmdbuffer);
 extern int getcmd(char *text, char *cmd);
 extern int parsecmd(char *singlecmd);
+extern int parse_mc_cmd(char *singlecmd);
+extern void sendCMDtoNet(char *cmddata);
 extern void sendsimplecmdtomc(char *cmddata);
 extern int strmovetostart(char *oristring, char *newstart);
 

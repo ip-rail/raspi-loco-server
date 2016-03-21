@@ -17,6 +17,7 @@
 
 #include "uart.h"
 #include "raspilokserver.h"
+#include "commands.h"
 #include "raspinetwork.h"
 
 void uart_init(void)
@@ -117,7 +118,7 @@ int uart_read(char *buffer)
 	if (uart0_filestream != -1)
 	{
 		// Read up to 255 characters from the port if they are there
-		rx_length = read(uart0_filestream, (void*)buffer, 255);		//Filestream, buffer to store in, number of bytes to read (max)
+		rx_length = read(uart0_filestream, (void*)buffer, 1023);		//Filestream, buffer to store in, number of bytes to read (max)
 
 		if (rx_length < 0)
 		{
@@ -139,26 +140,34 @@ int uart_read(char *buffer)
 }
 
 // uartlistener wartet auf Daten der UART-Verbindung zum Mikrocontroller und wertet sie aus
-// TODO: später soll das auch laufen, wenn keine Netzwerk-Verbindugn besteht!
+// TODO: später soll das auch laufen, wenn keine Netzwerk-Verbindung besteht!
 void *uartlistener(void *ptr)
 {
-	char data[256];
+	char data[1024];
 	uint8_t end = 0;	// 1 bedeutet Ausstieg aus der Server-Schleife
 	int testcount;
 
 	printf("Starting UARTlistener...\n");
 
+	if (servermode == SERVERMODE_TRANSPARENT)
+	{
+		uart_write("<nameget>");	// Loknamen om MC anfordern
+	}
+
 	while (!getNWThreadEnd())	// mit den Network-Threads beenden
 	{
-
+		int ergebnis;
+		bzero(data,1024);
 		testcount = uart_read(data);	// wartet jeweils 0,5s auf Daten (siehe uart_init(), VTIME), data wird überschrieben!!
-		if (testcount > 0) { printf("UART data: %s\n", data); }
+		if (testcount > 0)
+		{
+			printf("UART data: %s\n", data);	// nur für Test
+
+			ergebnis = checkcmd(data, CMD_FROM_UART, uart_cmdbuffer);	// Befehl auswerten
+
+		}
 
 		end = getNWThreadEnd();
-		if (!end)
-		{
-			if (testcount > 0) { tcp_send_safe(data); } //TODO: vorerst einfach an Controller weitersenden
-		}
 	}
 	printf("Exiting UARTlistener...\n");
 
