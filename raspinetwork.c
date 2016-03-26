@@ -157,6 +157,10 @@ void *tcp_clientloop(void *ptr)
 
 	conn_desc = (int *) ptr;
 
+
+	// einmal nach Herstellung der Verbindung namen senden cmd_iam
+	tcp_send_safe(cmd_iam);
+
 	while(!hangup)
 	{
 		//printf("entering client loop..\n");
